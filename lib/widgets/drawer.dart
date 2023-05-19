@@ -1,0 +1,304 @@
+import 'package:ConnecTen/Models/user_models.dart';
+import 'package:ConnecTen/Providers/connection_provider.dart';
+import 'package:ConnecTen/utils/fluttertoast.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ConnecTen/Providers/auth_providers.dart';
+import 'package:ConnecTen/Providers/database_provider.dart';
+import 'package:ConnecTen/routes/route_path.dart';
+import 'package:ConnecTen/utils/assets.dart';
+import 'package:ConnecTen/utils/colors.dart';
+import 'package:ConnecTen/utils/launch_urls.dart';
+import 'package:ConnecTen/utils/size_config.dart';
+
+import 'drawer_item.dart';
+
+class Menu extends ConsumerWidget {
+  const Menu({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _authService = ref.watch(authServicesProvider);
+    final _userDetails = ref.watch(userDetailsProvider);
+    final _authUser = ref.watch(authUserProvider);
+    final cp = ref.watch(connectionProvider);
+
+    return Drawer(
+      child: Material(
+        color: AppColor.secbgcolor,
+        child: Container(
+          margin: EdgeInsets.fromLTRB(
+              30, screenHeight! * 0.12, screenWidth! * 0.05, 0),
+          child: Column(
+            children: [
+              HeaderWidget(),
+              SizedBox(
+                height: screenHeight! * 0.03,
+              ),
+              InkWell(
+                onTap: () async {
+                  UserModel userData = _userDetails.value!;
+
+                  if(userData.coins >= 500){
+                  print("Burst Mode");
+                  cp.disableDiscovery();
+                  cp.enableAdvertising(_authUser.uid, true, 1);
+                  await Future.delayed(Duration(seconds: 5), () {});
+                  // TODO: Close the drawer and end the advertisement
+                  Navigator.pop(context);
+                }else{
+                    toastWidget("Not enough coins");
+                  }
+                },
+                child: Container(
+                  padding: EdgeInsets.all(screenHeight! * 0.01),
+                  width: screenWidth! * 0.4,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      width: 2,
+                      color: Colors.grey.withOpacity(0.4),
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.qr_code_scanner_rounded,
+                          size: 14, color: Colors.black87),
+                      SizedBox(
+                        width: screenWidth! * 0.005,
+                      ),
+                      const Text(
+                        "Burst Mode",
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w300,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: screenHeight! * 0.03),
+                child: const Divider(
+                  thickness: 1,
+                  height: 10,
+                  color: Colors.grey,
+                ),
+              ),
+              DrawerItem(
+                name: 'Nearby Connects',
+                icon: Icons.people_rounded,
+                onPressed: () => onItemPressed(context, index: 0),
+              ),
+              SizedBox(
+                height: screenHeight! * 0.03,
+              ),
+              DrawerItem(
+                name: 'Connections',
+                icon: Icons.people,
+                onPressed: () => onItemPressed(context, index: 1),
+              ),
+
+              _userDetails.when(
+                data: (data) {
+                  return data.isPrivate
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              height: screenHeight! * 0.03,
+                            ),
+                            DrawerItem(
+                                name: 'Connect Requests',
+                                icon: Icons.connect_without_contact_rounded,
+                                onPressed: () =>
+                                    onItemPressed(context, index: 4)),
+                          ],
+                        )
+                      : Container();
+                },
+                loading: () => Container(),
+                error: (error, stack) => Container(),
+              ),
+              SizedBox(
+                height: screenHeight! * 0.03,
+              ),
+              DrawerItem(
+                  name: 'Profile',
+                  icon: Icons.manage_accounts,
+                  onPressed: () => onItemPressed(context, index: 2)),
+              SizedBox(
+                height: screenHeight! * 0.03,
+              ),
+              DrawerItem(
+                  name: 'Scan QR',
+                  icon: Icons.qr_code_scanner_rounded,
+                  onPressed: () => onItemPressed(context, index: 3)),
+
+              // DrawerItem(
+              //     name: 'Upcoming Events',
+              //     icon: Icons.event_available,
+              //     onPressed: () => onItemPressed(context, index: 3)),
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: screenHeight! * 0.03),
+                child: const Divider(
+                  thickness: 1,
+                  height: 10,
+                  color: Colors.grey,
+                ),
+              ),
+              DrawerItem(
+                  name: 'Log out',
+                  icon: Icons.logout,
+                  onPressed: () {
+                    _authService.signOut();
+                    Navigator.pushReplacementNamed(
+                        context, RoutePath.routeToLoginScreen);
+                  }),
+
+              // Padding(
+              //   padding: EdgeInsets.only(top: screenHeight! * 0.05, bottom:20),
+              //   child: Image.network("https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${_userDetails.value!.uid}"),
+              // ),
+              // Text("Scan to build connections", style: TextStyle(fontSize: 14),),
+
+              Spacer(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.file_copy,
+                    color: Colors.black,
+                    size: 16,
+                  ),
+                  TextButton(
+                      onPressed: () {
+                        showLicensePage(
+                            context: context,
+                            applicationIcon: Image.asset(
+                              ImageAsset.applogo,
+                              height: 70,
+                            ),
+                            applicationVersion: "1.2.1",
+                            applicationLegalese: "Copyright CodingReboot");
+                      },
+                      child: Text(
+                        "Licenses",
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                            fontSize: 16),
+                      ))
+                ],
+              ),
+              Padding(
+                padding: EdgeInsets.only(bottom: screenHeight! * 0.02),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                        onPressed: () {
+                          launchExternalUrl(
+                              "https://pages.flycricket.io/connecten/terms.html");
+                        },
+                        child: Text(
+                          "Terms & Conditions",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                              fontSize: 10),
+                        )),
+                    SizedBox(width: screenWidth! * 0.02),
+                    TextButton(
+                        onPressed: () async {
+                          launchExternalUrl(
+                              "https://pages.flycricket.io/connecten/privacy.html");
+                        },
+                        child: Text(
+                          "Privacy Policy",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black,
+                              fontSize: 10),
+                        )),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void onItemPressed(BuildContext context, {required int index}) {
+    // final sp = context.read<SignInProvider>();
+    Navigator.pop(context);
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, RoutePath.routeToNearbyScreen);
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(
+            context, RoutePath.routeToConnectionScreen);
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, RoutePath.routeToProfileScreen);
+        break;
+
+      case 3:
+        Navigator.pushNamed(context, RoutePath.routeToQRScreen);
+        break;
+
+      case 4:
+        Navigator.pushNamed(context, RoutePath.routeToConnectReqScreen);
+        break;
+    }
+  }
+}
+
+class HeaderWidget extends ConsumerWidget {
+  const HeaderWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final _authUser = ref.watch(authUserProvider);
+    return Container(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: screenWidth! * 0.1,
+            backgroundImage: const AssetImage(ImageAsset.applogo),
+            foregroundImage: NetworkImage(_authUser.photoURL!),
+          ),
+          SizedBox(
+            width: screenHeight! * 0.02,
+          ),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_authUser.displayName ?? "Coding Reboot",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black)),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(_authUser.email ?? "test@mail.com",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 14, color: Colors.black))
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
